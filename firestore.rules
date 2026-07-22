@@ -1,0 +1,111 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // 0. GLOBAL SAFETY NET: Default Deny All
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // ===============================================================
+    // GLOBAL HELPERS
+    // ===============================================================
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isVerified() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidUrl(url) {
+      return url is string && (
+        url.matches("^https://.*") || 
+        url.matches("^data:image/.*;base64,.*")
+      ) && url.size() <= 1000000;
+    }
+
+    function isValidDateString(dateStr) {
+      return dateStr is string && dateStr.matches("^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}.*Z?$");
+    }
+
+    // ===============================================================
+    // DOMAIN VALIDATORS (Pillar 2: Anti-Update-Gap)
+    // ===============================================================
+
+    function isValidUserProfile(data) {
+      return data.keys().hasAll(['partner1Name', 'partner2Name', 'startDate']) &&
+             data.partner1Name is string && data.partner1Name.size() >= 1 && data.partner1Name.size() <= 50 &&
+             data.partner2Name is string && data.partner2Name.size() >= 1 && data.partner2Name.size() <= 50 &&
+             isValidDateString(data.startDate) &&
+             (!('coupleImageUrl' in data) || data.coupleImageUrl == null || data.coupleImageUrl == "" || isValidUrl(data.coupleImageUrl)) &&
+             (!('pin' in data) || data.pin == null || data.pin == "" || (data.pin is string && data.pin.size() == 4)) &&
+             (!('backgroundPreference' in data) || (data.backgroundPreference in ['personal', 'curated'])) &&
+             (!('musicUrl' in data) || data.musicUrl == null || data.musicUrl == "" || isValidUrl(data.musicUrl)) &&
+             (!('musicPreference' in data) || (data.musicPreference in ['personal', 'curated'])) &&
+             (!('role' in data) || data.role == 'user'); // Users cannot make themselves admin
+    }
+
+    function isValidSpecialDate(data) {
+      return data.keys().hasAll(['title', 'date', 'type']) &&
+             data.title is string && data.title.size() >= 1 && data.title.size() <= 100 &&
+             isValidDateString(data.date) &&
+             data.type in ['anniversary', 'first_meet', 'first_kiss', 'proposal', 'custom'] &&
+             (!('imageUrl' in data) || data.imageUrl == null || data.imageUrl == "" || isValidUrl(data.imageUrl));
+    }
+
+    function isValidMemory(data) {
+      return data.keys().hasAll(['title', 'description', 'date']) &&
+             data.title is string && data.title.size() >= 1 && data.title.size() <= 100 &&
+             data.description is string && data.description.size() >= 1 && data.description.size() <= 1000 &&
+             isValidDateString(data.date) &&
+             (!('imageUrl' in data) || data.imageUrl == null || data.imageUrl == "" || isValidUrl(data.imageUrl));
+    }
+
+    // ===============================================================
+    // ACCESS CONTROL (Pillar 1: Master Gate)
+    // ===============================================================
+
+    match /users/{userId} {
+      // 20-level "Firewall" Logic: Strict Ownership + Verification + Path Validation
+      allow get: if isOwner(userId) && (request.auth.token.email_verified == true);
+      allow list: if false; 
+      allow create: if isOwner(userId) && (request.auth.token.email_verified == true) && isValidUserProfile(incoming());
+      allow update: if isOwner(userId) && (request.auth.token.email_verified == true) && isValidUserProfile(incoming()) && incoming().role == existing().role;
+      allow delete: if isOwner(userId) && (request.auth.token.email_verified == true);
+
+      match /specialDates/{dateId} {
+        allow get: if isOwner(userId) && (request.auth.token.email_verified == true);
+        allow list: if isOwner(userId) && (request.auth.token.email_verified == true);
+        allow create: if isOwner(userId) && (request.auth.token.email_verified == true) && isValidSpecialDate(incoming());
+        allow update: if isOwner(userId) && (request.auth.token.email_verified == true) && isValidSpecialDate(incoming());
+        allow delete: if isOwner(userId) && (request.auth.token.email_verified == true);
+      }
+
+      match /memories/{memoryId} {
+        allow get: if isOwner(userId) && (request.auth.token.email_verified == true);
+        allow list: if isOwner(userId) && (request.auth.token.email_verified == true);
+        allow create: if isOwner(userId) && (request.auth.token.email_verified == true) && isValidMemory(incoming());
+        allow update: if isOwner(userId) && (request.auth.token.email_verified == true) && isValidMemory(incoming());
+        allow delete: if isOwner(userId) && (request.auth.token.email_verified == true);
+      }
+    }
+  }
+}

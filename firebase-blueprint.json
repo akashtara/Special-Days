@@ -1,0 +1,55 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "User Profile",
+      "description": "Stores user relationship settings and profile information.",
+      "type": "object",
+      "properties": {
+        "partner1Name": { "type": "string", "description": "Name of the first partner" },
+        "partner2Name": { "type": "string", "description": "Name of the second partner" },
+        "startDate": { "type": "string", "format": "date-time", "description": "ISO timestamp of when the relationship started" },
+        "coupleImageUrl": { "type": "string", "format": "uri", "description": "URL of the couple's photo" },
+        "pin": { "type": "string", "description": "Optional 4-digit PIN for app locking" }
+      },
+      "required": ["partner1Name", "partner2Name", "startDate"]
+    },
+    "SpecialDate": {
+      "title": "Special Date",
+      "description": "A significant moment or upcoming anniversary in the relationship.",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string", "description": "Title of the moment" },
+        "date": { "type": "string", "format": "date-time", "description": "ISO timestamp of the moment" },
+        "type": { "type": "string", "enum": ["anniversary", "first_meet", "first_kiss", "proposal", "custom"], "description": "Category of the moment" },
+        "imageUrl": { "type": "string", "format": "uri", "description": "Optional photo of the moment" }
+      },
+      "required": ["title", "date", "type"]
+    },
+    "Memory": {
+      "title": "Memory",
+      "description": "A past event with a description and optional image.",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string", "description": "Title of the memory" },
+        "description": { "type": "string", "description": "Detailed description of the memory" },
+        "date": { "type": "string", "format": "date-time", "description": "ISO timestamp of the memory" },
+        "imageUrl": { "type": "string", "format": "uri", "description": "Optional image URL for the memory" }
+      },
+      "required": ["title", "description", "date"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "UserProfile",
+      "description": "Private user profile and relationship settings"
+    },
+    "/users/{userId}/specialDates/{dateId}": {
+      "schema": "SpecialDate",
+      "description": "Collection of special dates for the user"
+    },
+    "/users/{userId}/memories/{memoryId}": {
+      "schema": "Memory",
+      "description": "Collection of memories for the user"
+    }
+  }
+}
