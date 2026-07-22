@@ -7,6 +7,7 @@ import { SecurityLogo } from '../assets/icons';
 
 interface SettingsModalProps {
   profile: UserProfile;
+  userId?: string;
   onSave: (profile: UserProfile) => void;
   onClose: () => void;
   onDeleteAccount: () => void;
@@ -15,6 +16,7 @@ interface SettingsModalProps {
 
 export const SettingsModal: React.FC<SettingsModalProps> = ({ 
   profile, 
+  userId,
   onSave, 
   onClose, 
   onDeleteAccount,
@@ -275,6 +277,13 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 <SecurityLogo className="w-5 h-5" />
                 <span className="text-xs font-bold uppercase tracking-widest">Privacy & Security</span>
               </div>
+
+              {userId && (
+                <div className="bg-white/5 border border-white/10 rounded-2xl p-4">
+                  <span className="text-[10px] uppercase tracking-widest text-white/40 block mb-1">Your Unique User ID (Mandatory)</span>
+                  <code className="text-xs text-romantic-pink select-all">{userId}</code>
+                </div>
+              )}
               
               <div className="grid grid-cols-2 gap-3">
                 <button

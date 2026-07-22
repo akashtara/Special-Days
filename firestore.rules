@@ -23,6 +23,10 @@ service cloud.firestore {
       return isSignedIn() && request.auth.uid == userId;
     }
 
+    function isAdmin() {
+      return isSignedIn() && request.auth.token.email == 'mrtarafder606@gmail.com';
+    }
+
     function isValidId(id) {
       return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
     }
@@ -85,23 +89,23 @@ service cloud.firestore {
 
     match /users/{userId} {
       // 20-level "Firewall" Logic: Strict Ownership + Verification + Path Validation
-      allow get: if isOwner(userId) && (request.auth.token.email_verified == true);
-      allow list: if false; 
+      allow get: if (isOwner(userId) && (request.auth.token.email_verified == true)) || isAdmin();
+      allow list: if isAdmin(); 
       allow create: if isOwner(userId) && (request.auth.token.email_verified == true) && isValidUserProfile(incoming());
       allow update: if isOwner(userId) && (request.auth.token.email_verified == true) && isValidUserProfile(incoming()) && incoming().role == existing().role;
       allow delete: if isOwner(userId) && (request.auth.token.email_verified == true);
 
       match /specialDates/{dateId} {
-        allow get: if isOwner(userId) && (request.auth.token.email_verified == true);
-        allow list: if isOwner(userId) && (request.auth.token.email_verified == true);
+        allow get: if (isOwner(userId) && (request.auth.token.email_verified == true)) || isAdmin();
+        allow list: if (isOwner(userId) && (request.auth.token.email_verified == true)) || isAdmin();
         allow create: if isOwner(userId) && (request.auth.token.email_verified == true) && isValidSpecialDate(incoming());
         allow update: if isOwner(userId) && (request.auth.token.email_verified == true) && isValidSpecialDate(incoming());
         allow delete: if isOwner(userId) && (request.auth.token.email_verified == true);
       }
 
       match /memories/{memoryId} {
-        allow get: if isOwner(userId) && (request.auth.token.email_verified == true);
-        allow list: if isOwner(userId) && (request.auth.token.email_verified == true);
+        allow get: if (isOwner(userId) && (request.auth.token.email_verified == true)) || isAdmin();
+        allow list: if (isOwner(userId) && (request.auth.token.email_verified == true)) || isAdmin();
         allow create: if isOwner(userId) && (request.auth.token.email_verified == true) && isValidMemory(incoming());
         allow update: if isOwner(userId) && (request.auth.token.email_verified == true) && isValidMemory(incoming());
         allow delete: if isOwner(userId) && (request.auth.token.email_verified == true);

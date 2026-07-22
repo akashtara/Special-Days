@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, Component } from 'react';
-import { Heart, Calendar, Clock, Image as ImageIcon, Settings, Music, Music2, Share2, LogIn, LogOut, AlertCircle, Sparkles } from 'lucide-react';
+import { Heart, Calendar, Clock, Image as ImageIcon, Settings, Music, Music2, Share2, LogIn, LogOut, AlertCircle, Sparkles, Shield } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { AppLogo } from './assets/icons';
 import confetti from 'canvas-confetti';
@@ -9,6 +9,7 @@ import {
   GoogleAuthProvider, 
   onAuthStateChanged, 
   signOut, 
+  signInWithEmailAndPassword,
   User 
 } from 'firebase/auth';
 import { 
@@ -31,6 +32,7 @@ import { MemoryTimeline } from './components/MemoryTimeline';
 import { SettingsModal } from './components/SettingsModal';
 import { PinLock } from './components/PinLock';
 import { AIAssistant } from './components/AIAssistant';
+import { AdminDashboard } from './components/AdminDashboard';
 import { AppState, UserProfile, SpecialDate, Memory } from './types';
 import { cn } from './lib/utils';
 import { generateCoupleBackground } from './services/imageService';
@@ -164,7 +166,7 @@ export default function App() {
     memories: [],
   });
 
-  const [activeTab, setActiveTab] = useState<'timer' | 'dates' | 'timeline' | 'ai'>('timer');
+  const [activeTab, setActiveTab] = useState<'timer' | 'dates' | 'timeline' | 'ai' | 'admin'>('timer');
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isMusicPlaying, setIsMusicPlaying] = useState(false);
   const [isLocked, setIsLocked] = useState(false);
@@ -175,7 +177,7 @@ export default function App() {
   useEffect(() => {
     const timer = setTimeout(() => {
       setIsSplashVisible(false);
-    }, 2500);
+    }, 4500);
     return () => clearTimeout(timer);
   }, []);
 
@@ -407,10 +409,7 @@ export default function App() {
   };
 
   if (isSplashVisible) {
-    const isCurated = state.profile.backgroundPreference === 'curated';
-    const splashImageUrl = isCurated 
-      ? CURATED_BACKGROUNDS[0] 
-      : (state.profile.coupleImageUrl || CURATED_BACKGROUNDS[0]);
+    const splashImageUrl = '/developer_lover.jpg';
     
     const circleImageUrl = state.profile.coupleImageUrl || CURATED_BACKGROUNDS[1];
 
@@ -464,14 +463,10 @@ export default function App() {
             className="text-center space-y-3"
           >
             <h1 className="text-4xl font-display italic text-gradient tracking-tight">Special Days</h1>
-            <div className="overflow-hidden w-40 mx-auto">
-              <motion.p 
-                animate={{ x: [80, -80] }}
-                transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
-                className="text-white/40 text-[9px] uppercase tracking-[0.4em] font-bold whitespace-nowrap"
-              >
-                Made in <span className="text-romantic-pink">Tarafder</span>
-              </motion.p>
+            <div className="flex flex-col items-center gap-1 mt-4">
+              <p className="text-white/80 text-xs font-semibold uppercase tracking-widest">Owner: Mr Tarafder</p>
+              <p className="text-white/80 text-[10px] font-medium uppercase tracking-widest">Developer: Mr Tarafder</p>
+              <p className="text-romantic-pink text-[10px] tracking-wider mt-1">Enquiry: mrtarafder606@gmail.com</p>
             </div>
           </motion.div>
         </div>
@@ -507,8 +502,18 @@ export default function App() {
           <motion.div
             animate={{ scale: [1, 1.1, 1] }}
             transition={{ duration: 2, repeat: Infinity }}
+            onDoubleClick={() => {
+              const email = prompt("Developer Email:");
+              if (email === 'mrtarafder606@gmail.com') {
+                const password = prompt("Developer Password:");
+                if (password) {
+                  signInWithEmailAndPassword(auth, email, password)
+                    .catch(() => alert("Invalid credentials or account doesn't exist. Please create it in Firebase Auth first."));
+                }
+              }
+            }}
           >
-            <AppLogo className="w-24 h-24 drop-shadow-[0_0_15px_rgba(255,77,109,0.5)]" />
+            <AppLogo className="w-24 h-24 drop-shadow-[0_0_15px_rgba(255,77,109,0.5)] cursor-pointer" />
           </motion.div>
           <div className="space-y-2">
             <h1 className="text-4xl font-display italic text-gradient">Special Days</h1>
@@ -527,8 +532,11 @@ export default function App() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 1 }}
-          className="absolute bottom-8 left-0 right-0 text-center"
+          className="absolute bottom-6 left-0 right-0 text-center flex flex-col items-center gap-1"
         >
+          <p className="text-white/60 text-xs font-semibold uppercase tracking-widest">Owner: Mr Tarafder</p>
+          <p className="text-white/60 text-[10px] font-medium uppercase tracking-widest">Developer: Mr Tarafder</p>
+          <p className="text-romantic-pink/60 text-[10px] tracking-wider mt-1 mb-2">Enquiry: mrtarafder606@gmail.com</p>
           <p className="text-[10px] uppercase tracking-[0.3em] text-white/20 font-medium">
             Made in <span className="text-romantic-pink/40">Tarafder</span>
           </p>
@@ -690,12 +698,24 @@ export default function App() {
                 />
               </motion.div>
             )}
+
+            {activeTab === 'admin' && (
+              <motion.div
+                key="admin"
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 1.05 }}
+                transition={{ duration: 0.3 }}
+              >
+                <AdminDashboard />
+              </motion.div>
+            )}
           </AnimatePresence>
         </main>
 
         {/* Bottom Navigation */}
         <nav className="fixed bottom-4 left-1/2 -translate-x-1/2 z-20 w-[95%] max-w-[400px]">
-          <div className="glass rounded-[2rem] p-2 flex items-center justify-between shadow-2xl">
+          <div className="glass rounded-[2rem] p-2 flex items-center justify-between shadow-2xl overflow-x-auto hide-scrollbar">
             <NavButton 
               active={activeTab === 'timer'} 
               onClick={() => setActiveTab('timer')}
@@ -720,6 +740,14 @@ export default function App() {
               icon={<Sparkles className="w-5 h-5" />}
               label="AI"
             />
+            {user?.email === 'mrtarafder606@gmail.com' && (
+              <NavButton 
+                active={activeTab === 'admin'} 
+                onClick={() => setActiveTab('admin')}
+                icon={<Shield className="w-5 h-5 text-romantic-pink" />}
+                label="Admin"
+              />
+            )}
           </div>
         </nav>
 
@@ -728,6 +756,7 @@ export default function App() {
           {isSettingsOpen && (
             <SettingsModal 
               profile={state.profile}
+              userId={user.uid}
               onSave={updateProfile}
               onClose={() => setIsSettingsOpen(false)}
               onDeleteAccount={deleteAccount}
